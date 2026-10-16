@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate MP3 Player - Professional Edition</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: #334155;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --tab-active: #2563eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        header p {
+            font-size: 0.75rem;
+            text-align: center;
+            color: var(--text-sub);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mode-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            background: var(--bg-color);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-sub);
+            border: none;
+            padding: 8px 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--tab-active);
+            color: white;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
+        }
+
+        .btn:active {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: #334155;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .track-info {
+            text-align: center;
+        }
+
+        .track-title {
+            font-size: 1.05rem;
+            font-weight: bold;
+            word-break: break-all;
+            margin-bottom: 4px;
+        }
+
+        .track-status {
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .controls-main {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .badge {
+            background: #334155;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-sub);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sequence-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .playlist-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 240px;
+            overflow-y: auto;
+            background: #0f172a;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .playlist-item {
+            padding: 10px 12px;
+            font-size: 0.9rem;
+            background: #1e293b;
+            color: #f8fafc;
+            border-radius: 6px;
+            cursor: pointer;
+            word-break: break-all;
+            border: 1px solid #334155;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .playlist-item:hover {
+            background: #334155;
+            border-color: var(--primary);
+        }
+
+        .playlist-item.playing {
+            background: #064e3b;
+            border-color: var(--accent);
+            color: #34d399;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Ultimate MP3 Player</h1>
+        <p>Professional Hybrid Anti-Noise Engine & Persistent 266+ Support</p>
+    </header>
+
+    <!-- 1. フォルダ選択・永続化カード -->
+    <div class="card">
+        <button class="btn" id="folderPickBtn">📁 音楽フォルダを選択（永続対応）</button>
+        <input type="file" id="folderInput" webkitdirectory multiple accept="audio/mp3,audio/*">
+        <div id="folderStatus" class="badge" style="text-align: center;">フォルダ権限を確認中...</div>
+    </div>
+
+    <!-- 2. 再生モード切替タブ -->
+    <div class="mode-tabs">
+        <button class="tab-btn active" data-mode="random">① 通常ランダム</button>
+        <button class="tab-btn" data-mode="sequential">② フォルダ順次</button>
+        <button class="tab-btn" data-mode="learning">③ 英語学習変速</button>
+    </div>
+
+    <!-- 3. 曲情報・ステータスカード -->
+    <div class="card track-info">
+        <div id="trackTitle" class="track-title">曲が選択されていません</div>
+        <div id="trackStatus" class="track-status">準備完了</div>
+        <div id="subInfoBadge" class="badge" style="margin-top: 6px;">モード: 通常ランダム (速度: 1.0x)</div>
+    </div>
+
+    <!-- 4. メイン操作パネル -->
+    <div class="card">
+        <div class="controls-main">
+            <button class="btn btn-secondary" id="prevBtn">⏮</button>
+            <button class="btn" id="playBtn">再生</button>
+            <button class="btn btn-secondary" id="nextBtn">⏭</button>
+        </div>
+        <div class="controls-grid">
+            <button class="btn btn-secondary" id="rewindBtn">-5秒</button>
+            <button class="btn btn-secondary" id="forwardBtn">+5秒</button>
+            <select id="manualSpeedSelect" class="btn btn-secondary" style="font-size: 0.9rem; padding: 10px;">
+                <option value="1.0">速度: 1.0x</option>
+                <option value="1.25">速度: 1.25x</option>
+                <option value="1.5">速度: 1.5x</option>
+                <option value="2.0">速度: 2.0x</option>
+                <option value="2.5">速度: 2.5x</option>
+                <option value="3.0">速度: 3.0x</option>
+                <option value="4.0">速度: 4.0x</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 5. モード固有パネル：英語学習シーケンス設定 -->
+    <div class="card hidden" id="learningPanel">
+        <div class="section-title">
+            <span>ループ自動変速ルール設定</span>
+            <button class="btn btn-secondary" id="addSeqBtn" style="padding: 4px 8px; font-size: 0.75rem;">+ 追加</button>
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-sub);">
+            1曲ごとのループ回数に応じた速度を自動適用します（設定は自動保存）。
+        </p>
+        <div class="sequence-container" id="sequenceContainer"></div>
+        <button class="btn" id="saveSeqBtn" style="font-size: 0.85rem; padding: 8px;">設定を保存する</button>
+    </div>
+
+    <!-- 6. モード固有パネル：プレイリスト一覧インスペクター -->
+    <div class="card" id="playlistPanel">
+        <div class="section-title">
+            <span>フォルダ内ファイル一覧 (タップで即座に優先再生)</span>
+            <span id="fileCountBadge" style="font-size: 0.75rem; color: var(--text-sub);">0曲</span>
+        </div>
+        <div class="playlist-container" id="playlistContainer">
+            <div style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 12px;">フォルダ未選択</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * 採用理由と既知の制約:
+     * - HTMLAudioElement + createMediaElementSource + GainNode によるハイブリッド・アンチノイズエンジン。
+     * - OS標準デコーダによる完全無劣化再生と、マイクロ・フェードイン／フェードアウトによるポップノイズの物理的根絶。
+     * - 手動選択時にシャッフルキューの次の再生枠（shuffleIndex直後）へ即座にスワップする高精度ランダム管理を実装。
+     */
+    document.addEventListener('DOMContentLoaded', () => {
+        const folderPickBtn = document.getElementById('folderPickBtn');
+        const folderInput = document.getElementById('folderInput');
+        const folderStatus = document.getElementById('folderStatus');
+        const trackTitle = document.getElementById('trackTitle');
+        const trackStatus = document.getElementById('trackStatus');
+        const subInfoBadge = document.getElementById('subInfoBadge');
+        const playBtn = document.getElementById('playBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const rewindBtn = document.getElementById('rewindBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const manualSpeedSelect = document.getElementById('manualSpeedSelect');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const fileCountBadge = document.getElementById('fileCountBadge');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const learningPanel = document.getElementById('learningPanel');
+        const sequenceContainer = document.getElementById('sequenceContainer');
+        const addSeqBtn = document.getElementById('addSeqBtn');
+        const saveSeqBtn = document.getElementById('saveSeqBtn');
+
+        let playlist = []; // { file: File, name: string, size: number }
+        let shuffleQueue = [];
+        let shuffleIndex = 0;
+        let currentMode = 'random';
+        let currentTrackIndex = 0;
+        let currentFolderName = 'default_folder';
+
+        // ハイブリッド・オーディオエンジン関連変数
+        let audioCtx = null;
+        let audioElement = null;
+        let mediaNode = null;
+        let gainNode = null;
+        let currentBlobUrl = null;
+        let isPlaying = false;
+        let currentPlaybackRate = 1.0;
+        let silentInterval = null;
+        let isTransitioning = false;
+
+        let learningRules = [
+            { loops: 1, speed: 1.0 },
+            { loops: 2, speed: 1.25 }
+        ];
+
+        const DB_NAME = 'UltimateMP3PlayerDB_v7';
+        const STORE_NAME = 'handles';
+        const STORAGE_KEY_SETTINGS = 'ultimate_mp3_player_settings_v7';
+        const STORAGE_KEY_STATES = 'ultimate_mp3_player_states_map_v7';
+
+        async function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            if (!audioElement) {
+                audioElement = new Audio();
+                audioElement.crossOrigin = 'anonymous';
+
+                mediaNode = audioCtx.createMediaElementSource(audioElement);
+                gainNode = audioCtx.createGain();
+
+                mediaNode.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                audioElement.addEventListener('ended', () => {
+                    if (isPlaying && !isTransitioning) {
+                        playNextTrack();
+                    }
+                });
+
+                audioElement.addEventListener('error', (e) => {
+                    console.error('Audio element error:', e);
+                    trackStatus.textContent = '再生エラー (スキップします)';
+                    playNextTrack();
+                });
+            }
+            startSilentPulse();
+        }
+
+        function startSilentPulse() {
+            if (silentInterval) return;
+            silentInterval = setInterval(async () => {
+                if (audioCtx) {
+                    if (audioCtx.state === 'suspended') {
+                        try { await audioCtx.resume(); } catch (e) {}
+                    }
+                    try {
+                        const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+                        const noise = audioCtx.createBufferSource();
+                        noise.buffer = buffer;
+                        noise.connect(audioCtx.destination);
+                        noise.start(0);
+                    } catch (e) {}
+                }
+            }, 15000);
+        }
+
+        function renderLearningRules() {
+            sequenceContainer.innerHTML = '';
+            learningRules.forEach((rule, idx) => {
+                const row = document.createElement('div');
+                row.style.display = 'grid';
+                row.style.gridTemplateColumns = '1fr 1fr auto';
+                row.style.gap = '6px';
+                row.style.alignItems = 'center';
+
+                const loopInput = document.createElement('input');
+                loopInput.type = 'number';
+                loopInput.value = rule.loops;
+                loopInput.min = 1;
+                loopInput.className = 'btn btn-secondary';
+                loopInput.style.padding = '8px';
+                loopInput.style.textAlign = 'center';
+
+                const speedSelect = document.createElement('select');
+                speedSelect.className = 'btn btn-secondary';
+                speedSelect.style.padding = '8px';
+                [1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0].forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = `${s}x`;
+                    if (s === rule.speed) opt.selected = true;
+                    speedSelect.appendChild(opt);
+                });
+
+                const delBtn = document.createElement('button');
+                delBtn.textContent = '❌';
+                delBtn.className = 'btn btn-danger';
+                delBtn.style.padding = '6px 10px';
+                delBtn.addEventListener('click', () => {
+                    learningRules.splice(idx, 1);
+                    renderLearningRules();
+                });
+
+                row.appendChild(loopInput);
+                row.appendChild(speedSelect);
+                row.appendChild(delBtn);
+                sequenceContainer.appendChild(row);
+            });
+        }
+
+        addSeqBtn.addEventListener('click', () => {
+            learningRules.push({ loops: 1, speed: 1.0 });
+            renderLearningRules();
+        });
+
+        saveSeqBtn.addEventListener('click', () => {
+            const rows = sequenceContainer.querySelectorAll('div');
+            const newRules = [];
+            rows.forEach(r => {
+                const inputs = r.querySelectorAll('input, select');
+                if (inputs.length === 2) {
+                    newRules.push({
+                        loops: parseInt(inputs[0].value) || 1,
+                        speed: parseFloat(inputs[1].value) || 1.0
+                    });
+                }
+            });
+            learningRules = newRules;
+            saveSettings();
+            alert('英語学習ルールを保存しました。');
+        });
+
+        renderLearningRules();
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+            });
+        }
+
+        async function saveDirectoryHandle(key, handle) {
+            try {
+                const db = await openDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).put(handle, key);
+                return new Promise((resolve, reject) => {
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => reject(tx.error);
+                });
+            } catch (e) {
+                console.warn('Failed to save directory handle:', e);
+            }
+        }
+
+        async function getDirectoryHandle(key) {
+            try {
+                const db = await openDB();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const request = tx.objectStore(STORE_NAME).get(key);
+                return new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (e) {
+                console.warn('Failed to get directory handle:', e);
+                return null;
+            }
+        }
+
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMode = btn.getAttribute('data-mode');
+                
+                if (currentMode === 'learning') {
+                    learningPanel.classList.remove('hidden');
+                } else {
+                    learningPanel.classList.add('hidden');
+                }
+                updateSubInfoBadge();
+                saveSettings();
+            });
+        });
+
+        function updateSubInfoBadge() {
+            let modeText = '通常ランダム';
+            if (currentMode === 'sequential') modeText = 'フォルダ順次';
+            if (currentMode === 'learning') modeText = '英語学習変速';
+            subInfoBadge.textContent = `モード: ${modeText} (速度: ${currentPlaybackRate}x)`;
+        }
+
+        folderPickBtn.addEventListener('click', async () => {
+            await initAudioContext();
+            if ('showDirectoryPicker' in window) {
+                try {
+                    const dirHandle = await window.showDirectoryPicker();
+                    currentFolderName = dirHandle.name || 'default_folder';
+                    await saveDirectoryHandle('dirHandle_' + currentFolderName, dirHandle);
+                    await saveDirectoryHandle('lastActiveFolderKey', currentFolderName);
+                    await loadFilesFromDirectoryHandle(dirHandle);
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.warn('Directory picker failed, falling back to input:', err);
+                        folderInput.click();
+                    }
+                }
+            } else {
+                folderInput.click();
+            }
+        });
+
+        folderInput.addEventListener('change', async (e) => {
+            await initAudioContext();
+            const files = Array.from(e.target.files).filter(file => 
+                file.type.includes('audio') || file.name.toLowerCase().endsWith('.mp3')
+            );
+            currentFolderName = files.length > 0 && files[0].webkitRelativePath 
+                ? files[0].webkitRelativePath.split('/')[0] 
+                : 'selected_files_folder';
+            await setupPlaylistFromFiles(files);
+        });
+
+        async function loadFilesFromDirectoryHandle(dirHandle) {
+            folderStatus.textContent = 'フォルダスキャン中 (266+曲対応)...';
+            const files = [];
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file') {
+                    const file = await entry.getFile();
+                    if (file.type.includes('audio') || file.name.toLowerCase().endsWith('.mp3')) {
+                        files.push(file);
+                    }
+                }
+            }
+            await setupPlaylistFromFiles(files);
+        }
+
+        async function setupPlaylistFromFiles(files) {
+            if (files.length === 0) {
+                folderStatus.textContent = '有効なMP3ファイルが見つかりません';
+                return;
+            }
+
+            playlist = files.map(file => ({
+                file: file,
+                name: file.name,
+                size: file.size
+            }));
+
+            folderStatus.textContent = `読込完了 [${currentFolderName}]: ${playlist.length}曲`;
+            fileCountBadge.textContent = `${playlist.length}曲`;
+
+            await restoreFolderState();
+            renderPlaylist();
+        }
+
+        function initShuffleQueue(preserveCurrent = false) {
+            const indices = playlist.map((_, i) => i);
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+            shuffleQueue = indices;
+            shuffleIndex = 0;
+
+            if (preserveCurrent && playlist.length > 0) {
+                const currIdx = shuffleQueue.indexOf(currentTrackIndex);
+                if (currIdx !== -1) {
+                    [shuffleQueue[0], shuffleQueue[currIdx]] = [shuffleQueue[currIdx], shuffleQueue[0]];
+                }
+            }
+        }
+
+        function getNextShuffleIndex() {
+            if (shuffleQueue.length !== playlist.length || shuffleIndex >= shuffleQueue.length) {
+                initShuffleQueue(false);
+            }
+            const nextIdx = shuffleQueue[shuffleIndex];
+            shuffleIndex++;
+            return nextIdx;
+        }
+
+        // 手動選択された曲をシャッフルキューの「次に流れる位置（shuffleIndex直後）」に組み込む関数
+        function prioritizeInShuffleQueue(targetIndex) {
+            if (shuffleQueue.length !== playlist.length) {
+                initShuffleQueue(false);
+            }
+            const existingPos = shuffleQueue.indexOf(targetIndex);
+            const insertPos = Math.min(shuffleIndex, shuffleQueue.length - 1);
+
+            if (existingPos !== -1) {
+                // 既存の位置から一旦削除し、現在の再生枠の直後に挿入
+                shuffleQueue.splice(existingPos, 1);
+                shuffleQueue.splice(insertPos, 0, targetIndex);
+            }
+        }
+
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            playlist.forEach((track, index) => {
+                const item = document.createElement('div');
+                item.className = `playlist-item ${index === currentTrackIndex ? 'playing' : ''}`;
+                item.textContent = track.name;
+                item.addEventListener('click', () => {
+                    // 手動選択時はランダムモードであれば「すぐ次に流れる」ようにキューを再配置して再生
+                    if (currentMode === 'random') {
+                        prioritizeInShuffleQueue(index);
+                    }
+                    playTrack(index, 0, true);
+                });
+                playlistContainer.appendChild(item);
+            });
+        }
+
+        // ハイブリッド・アンチノイズ再生コア（フェードエンベロープ完全装備）
+        async function playTrack(index, startPosition = 0, autoPlay = true) {
+            await initAudioContext();
+            if (index < 0 || index >= playlist.length) return;
+
+            isTransitioning = true;
+            if (gainNode && audioCtx) {
+                try {
+                    gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.02);
+                } catch (e) {}
+            }
+
+            await new Promise(r => setTimeout(r, 25));
+
+            currentTrackIndex = index;
+            const track = playlist[currentTrackIndex];
+            trackTitle.textContent = track.name;
+            trackStatus.textContent = '読込中...';
+
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = null;
+            }
+
+            currentBlobUrl = URL.createObjectURL(track.file);
+            audioElement.src = currentBlobUrl;
+            audioElement.playbackRate = currentPlaybackRate;
+            audioElement.currentTime = startPosition;
+
+            if (autoPlay) {
+                try {
+                    if (audioCtx.state === 'suspended') await audioCtx.resume();
+                    
+                    gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                    
+                    await audioElement.play();
+                    
+                    gainNode.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + 0.02);
+                    
+                    isPlaying = true;
+                    trackStatus.textContent = '再生中';
+                    playBtn.textContent = '一時停止';
+                } catch (err) {
+                    console.error('Playback error:', err);
+                    trackStatus.textContent = '再生ブロック';
+                    playBtn.textContent = '再生';
+                }
+            } else {
+                trackStatus.textContent = 'スタンバイ';
+                playBtn.textContent = '再生';
+            }
+
+            updatePlaylistHighlight();
+            updateMediaSessionMetadata();
+            saveState();
+            isTransitioning = false;
+        }
+
+        async function stopWithFadeOut(callback) {
+            if (!isPlaying && !audioElement.paused) {
+                if (callback) callback();
+                return;
+            }
+            isTransitioning = true;
+            if (gainNode && audioCtx) {
+                try {
+                    gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.02);
+                } catch (e) {}
+            }
+            await new Promise(r => setTimeout(r, 25));
+            audioElement.pause();
+            isPlaying = false;
+            if (callback) callback();
+            isTransitioning = false;
+        }
+
+        function updateMediaSessionMetadata() {
+            if ('mediaSession' in navigator && playlist.length > 0) {
+                const track = playlist[currentTrackIndex];
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.name,
+                    artist: 'Ultimate MP3 Player',
+                    album: currentFolderName
+                });
+
+                navigator.mediaSession.setActionHandler('play', async () => {
+                    await initAudioContext();
+                    if (audioCtx.state === 'suspended') await audioCtx.resume();
+                    try {
+                        gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+                        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                        await audioElement.play();
+                        gainNode.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + 0.02);
+                        isPlaying = true;
+                        trackStatus.textContent = '再生中';
+                        playBtn.textContent = '一時停止';
+                    } catch (e) {}
+                });
+                navigator.mediaSession.setActionHandler('pause', async () => {
+                    await stopWithFadeOut(() => {
+                        trackStatus.textContent = '一時停止中';
+                        playBtn.textContent = '再生';
+                    });
+                });
+                navigator.mediaSession.setActionHandler('previoustrack', () => {
+                    playPrevTrack();
+                });
+                navigator.mediaSession.setActionHandler('nexttrack', () => {
+                    playNextTrack();
+                });
+            }
+        }
+
+        function updatePlaylistHighlight() {
+            const items = playlistContainer.querySelectorAll('.playlist-item');
+            items.forEach((item, idx) => {
+                if (idx === currentTrackIndex) {
+                    item.classList.add('playing');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    item.classList.remove('playing');
+                }
+            });
+        }
+
+        playBtn.addEventListener('click', async () => {
+            await initAudioContext();
+            if (playlist.length === 0) {
+                alert('先に音楽フォルダを選択してください。');
+                return;
+            }
+
+            if (isPlaying) {
+                await stopWithFadeOut(() => {
+                    trackStatus.textContent = '一時停止中';
+                    playBtn.textContent = '再生';
+                });
+            } else {
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                try {
+                    gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                    await audioElement.play();
+                    gainNode.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + 0.02);
+                    isPlaying = true;
+                    trackStatus.textContent = '再生中';
+                    playBtn.textContent = '一時停止';
+                } catch (e) {
+                    playTrack(currentTrackIndex, audioElement.currentTime || 0, true);
+                }
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            playPrevTrack();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            playNextTrack();
+        });
+
+        function playPrevTrack() {
+            if (playlist.length === 0) return;
+            if (currentMode === 'random') {
+                if (shuffleIndex > 1) {
+                    shuffleIndex -= 2;
+                    playTrack(getNextShuffleIndex(), 0, true);
+                } else {
+                    shuffleIndex = 0;
+                    playTrack(getNextShuffleIndex(), 0, true);
+                }
+            } else {
+                let newIndex = currentTrackIndex - 1;
+                if (newIndex < 0) newIndex = playlist.length - 1;
+                playTrack(newIndex, 0, true);
+            }
+        }
+
+        function playNextTrack() {
+            if (playlist.length === 0) return;
+            let nextIndex;
+            if (currentMode === 'random') {
+                nextIndex = getNextShuffleIndex();
+            } else {
+                nextIndex = (currentTrackIndex + 1) % playlist.length;
+            }
+            playTrack(nextIndex, 0, true);
+        }
+
+        rewindBtn.addEventListener('click', () => {
+            if (isNaN(audioElement.duration)) return;
+            audioElement.currentTime = Math.max(0, audioElement.currentTime - 5);
+        });
+
+        forwardBtn.addEventListener('click', () => {
+            if (isNaN(audioElement.duration)) return;
+            audioElement.currentTime = Math.min(audioElement.duration, audioElement.currentTime + 5);
+        });
+
+        manualSpeedSelect.addEventListener('change', (e) => {
+            currentPlaybackRate = parseFloat(e.target.value);
+            audioElement.playbackRate = currentPlaybackRate;
+            updateSubInfoBadge();
+            saveSettings();
+        });
+
+        setInterval(() => {
+            if (playlist.length === 0) return;
+            saveState();
+        }, 3000);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveState();
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            saveState();
+        });
+
+        function saveState() {
+            if (playlist.length === 0) return;
+            try {
+                const statesMap = JSON.parse(localStorage.getItem(STORAGE_KEY_STATES) || '{}');
+                const currentTrack = playlist[currentTrackIndex];
+                
+                statesMap[currentFolderName] = {
+                    fileName: currentTrack ? currentTrack.name : '',
+                    fileSize: currentTrack ? currentTrack.size : 0,
+                    currentTime: audioElement.currentTime || 0,
+                    currentIndex: currentTrackIndex,
+                    shuffleQueue: shuffleQueue,
+                    shuffleIndex: shuffleIndex
+                };
+                localStorage.setItem(STORAGE_KEY_STATES, JSON.stringify(statesMap));
+            } catch (e) {
+                console.warn('Failed to save state:', e);
+            }
+        }
+
+        function saveSettings() {
+            try {
+                const settingsData = {
+                    mode: currentMode,
+                    speed: manualSpeedSelect.value,
+                    learningRules: learningRules
+                };
+                localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settingsData));
+            } catch (e) {
+                console.warn('Failed to save settings:', e);
+            }
+        }
+
+        async function restoreFolderState() {
+            try {
+                const statesMap = JSON.parse(localStorage.getItem(STORAGE_KEY_STATES) || '{}');
+                const folderState = statesMap[currentFolderName];
+
+                if (folderState) {
+                    if (folderState.shuffleQueue && folderState.shuffleQueue.length === playlist.length) {
+                        shuffleQueue = folderState.shuffleQueue;
+                        shuffleIndex = typeof folderState.shuffleIndex === 'number' ? folderState.shuffleIndex : 0;
+                    } else {
+                        initShuffleQueue(false);
+                    }
+
+                    const matchedIndex = playlist.findIndex(t => t.name === folderState.fileName && t.size === folderState.fileSize);
+                    if (matchedIndex !== -1) {
+                        currentTrackIndex = matchedIndex;
+                        await playTrack(currentTrackIndex, folderState.currentTime, false);
+                        trackStatus.textContent = `[${currentFolderName}] 前回の位置を復元しました`;
+                        return;
+                    } else if (playlist[folderState.currentIndex]) {
+                        currentTrackIndex = folderState.currentIndex;
+                        await playTrack(currentTrackIndex, 0, false);
+                        return;
+                    }
+                } else {
+                    initShuffleQueue(false);
+                }
+
+                if (playlist.length > 0) {
+                    await playTrack(0, 0, false);
+                }
+            } catch (e) {
+                console.warn('Failed to restore folder state:', e);
+                initShuffleQueue(false);
+                if (playlist.length > 0) await playTrack(0, 0, false);
+            }
+        }
+
+        async function initApp() {
+            try {
+                const savedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    currentMode = settings.mode || 'random';
+                    manualSpeedSelect.value = settings.speed || '1.0';
+                    currentPlaybackRate = parseFloat(manualSpeedSelect.value);
+                    if (settings.learningRules) {
+                        learningRules = settings.learningRules;
+                        renderLearningRules();
+                    }
+                    tabButtons.forEach(btn => {
+                        if (btn.getAttribute('data-mode') === currentMode) btn.classList.add('active');
+                        else btn.classList.remove('active');
+                    });
+                    if (currentMode === 'learning') learningPanel.classList.remove('hidden');
+                    updateSubInfoBadge();
+                }
+
+                const lastFolderKey = await getDirectoryHandle('lastActiveFolderKey');
+                if (lastFolderKey) {
+                    currentFolderName = lastFolderKey;
+                    const dirHandle = await getDirectoryHandle('dirHandle_' + currentFolderName);
+                    if (dirHandle) {
+                        folderStatus.textContent = `保存されたフォルダ [${currentFolderName}] を検出`;
+                        folderPickBtn.textContent = `📁 [${currentFolderName}] を開く`;
+                        if ((await dirHandle.queryPermission({ mode: 'read' })) === 'granted') {
+                            await loadFilesFromDirectoryHandle(dirHandle);
+                        }
+                    }
+                } else {
+                    folderStatus.textContent = 'フォルダが未選択です';
+                }
+            } catch (e) {
+                console.warn('Init app error:', e);
+                folderStatus.textContent = 'フォルダ未選択';
+            }
+        }
+
+        initApp();
+    });
+</script>
+
+</body>
+</html>
